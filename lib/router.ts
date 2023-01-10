@@ -1,6 +1,12 @@
-import { FetchProgressEvent, FlamethrowerOptions, RouteChangeData } from './interfaces';
+import { formatNextDocument, mergeHead, replaceBody, runScripts } from './dom';
 import { addToPushState, handleLinkClick, handlePopState, scrollTo } from './handlers';
-import { mergeHead, formatNextDocument, replaceBody, runScripts } from './dom';
+import { FetchProgressEvent, FlamethrowerOptions, RouteChangeData } from './interfaces';
+
+type ModernDocument = Document & {
+  createDocumentTransition?: () => {
+    start: (cb: () => void) => void;
+  };
+};
 
 const defaultOpts = {
   log: false,
@@ -10,7 +16,7 @@ const defaultOpts = {
 export class Router {
   public enabled = true;
   private prefetched = new Set<string>();
-  private observer: IntersectionObserver;
+  private observer: IntersectionObserver | undefined;
 
   constructor(public opts?: FlamethrowerOptions) {
     this.opts = { ...defaultOpts, ...(opts ?? {}) };
@@ -62,17 +68,18 @@ export class Router {
     );
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private log(...args: any[]): void {
-    this.opts.log && console.log(...args);
+    this.opts?.log && console.log(...args);
   }
 
   /**
    *  Check if the route is qualified for prefetching and prefetch it with chosen method
    */
   private prefetch(): void {
-    if (this.opts.prefetch === 'visible') {
+    if (this.opts?.prefetch === 'visible') {
       this.prefetchVisible();
-    } else if (this.opts.prefetch === 'hover') {
+    } else if (this.opts?.prefetch === 'hover') {
       this.prefetchOnHover();
     } else {
       return;
@@ -85,6 +92,7 @@ export class Router {
   private prefetchOnHover(): void {
     this.allLinks.forEach((node) => {
       const url = node.getAttribute('href');
+      if (url === null) return;
       // Using `pointerenter` instead of `mouseenter` to support touch devices hover behavior, PS: `pointerenter` event fires only once
       node.addEventListener('pointerenter', () => this.createLink(url), { once: true });
     });
@@ -104,6 +112,7 @@ export class Router {
       this.observer ||= new IntersectionObserver((entries, observer) => {
         entries.forEach((entry) => {
           const url = entry.target.getAttribute('href');
+          if (url === null) return;
 
           if (this.prefetched.has(url)) {
             observer.unobserve(entry.target);
@@ -116,7 +125,7 @@ export class Router {
           }
         });
       }, intersectionOpts);
-      this.allLinks.forEach((node) => this.observer.observe(node));
+      this.allLinks.forEach((node) => this.observer?.observe(node));
     }
   }
 
@@ -131,7 +140,8 @@ export class Router {
     linkEl.as = 'document';
 
     linkEl.onload = () => this.log('🌩️ prefetched', url);
-    linkEl.onerror = (err) => this.log('🤕 can\'t prefetch', url, err);
+    // eslint-disable-next-line quotes
+    linkEl.onerror = (err) => this.log("🤕 can't prefetch", url, err);
 
     document.head.appendChild(linkEl);
 
@@ -158,107 +168,122 @@ export class Router {
    * @param  {RouteChangeData} routeChangeData
    * Main process for reconstructing the DOM
    */
-  private async reconstructDOM({ type, next, prev, scrollId }: RouteChangeData): Promise<boolean> {
+  private async reconstructDOM(routeChangeData: RouteChangeData): Promise<boolean> {
     if (!this.enabled) {
       this.log('router disabled');
-      return;
+      return false;
     }
 
     try {
-      this.log('⚡', type);
+      this.log('⚡', routeChangeData.type);
 
-      // Check type && window href destination
-      // Disqualify if fetching same URL
-      if (['popstate', 'link', 'go'].includes(type) && next !== prev) {
-        this.opts.log && console.time('⏱️');
-
-        window.dispatchEvent(new CustomEvent('flamethrower:router:fetch'));
-
-        // Update window history
-        if (type != 'popstate') {
-          addToPushState(next);
-        }
-
-        // Fetch next document
-        const res = await fetch(next, { headers: { 'X-Flamethrower': '1' } })
-          .then((res) => {
-            const reader = res.body.getReader();
-            const length = parseInt(res.headers.get('Content-Length'));
-            let bytesReceived = 0;
-
-            // take each received chunk and emit an event, pass through to new stream which will be read as text
-            return new ReadableStream({
-              start(controller) {
-                // The following function handles each data chunk
-                function push() {
-                  // "done" is a Boolean and value a "Uint8Array"
-                  reader.read().then(({ done, value }) => {
-                    // If there is no more data to read
-                    if (done) {
-                      controller.close();
-                      return;
-                    }
-
-                    bytesReceived += value.length;
-                    window.dispatchEvent(
-                      new CustomEvent<FetchProgressEvent>('flamethrower:router:fetch-progress', {
-                        detail: {
-                          // length may be NaN if no Content-Length header was found
-                          progress: Number.isNaN(length) ? 0 : (bytesReceived / length) * 100,
-                          received: bytesReceived,
-                          length: length || 0,
-                        },
-                      }),
-                    );
-                    // Get the data and send it to the browser via the controller
-                    controller.enqueue(value);
-                    // Check chunks by logging to the console
-                    push();
-                  });
-                }
-
-                push();
-              },
-            });
-          })
-          .then((stream) => new Response(stream, { headers: { 'Content-Type': 'text/html' } }));
-
-        const html = await res.text();
-        const nextDoc = formatNextDocument(html);
-
-        // Merge HEAD
-        mergeHead(nextDoc);
-
-        // Merge BODY
-        // with optional native browser page transitions
-        if (this.opts.pageTransitions && (document as any).createDocumentTransition) {
-          const transition = (document as any).createDocumentTransition();
-          transition.start(() => {
-            replaceBody(nextDoc);
-            runScripts();
-            scrollTo(type, scrollId);
-          });
-        } else {
-          replaceBody(nextDoc);
-          runScripts();
-          scrollTo(type, scrollId);
-        }
-
-
-        window.dispatchEvent(new CustomEvent('flamethrower:router:end'));
-
-        // delay for any js rendered links
-        setTimeout(() => {
-          this.prefetch();
-        }, 200);
-
-        this.opts.log && console.timeEnd('⏱️');
-      }
+      return await this.reconstructDOMUnsafe(routeChangeData);
     } catch (err) {
-      window.dispatchEvent(new CustomEvent('flamethrower:router:error', err));
-      this.opts.log && console.timeEnd('⏱️');
+      window.dispatchEvent(new CustomEvent('flamethrower:router:error', err instanceof Error ? { detail: err } : undefined));
+      this.opts?.log && console.timeEnd('⏱️');
       console.error('💥 router fetch failed', err);
       return false;
     }
+  }
+
+  private async reconstructDOMUnsafe(routeChangeData: RouteChangeData): Promise<boolean> {
+    // Check type && window href destination
+    // Disqualify if fetching same URL
+    if (!(routeChangeData.type === 'popstate' || routeChangeData.type === 'link' || routeChangeData.type === 'go')) return false;
+    if (routeChangeData.next === routeChangeData.prev) return false;
+
+    const { type, next, scrollId } = routeChangeData;
+
+    this.opts?.log && console.time('⏱️');
+
+    window.dispatchEvent(new CustomEvent('flamethrower:router:fetch'));
+
+    // Update window history
+    if (type !== 'popstate') {
+      addToPushState(next);
+    }
+
+    // Fetch next document
+    const res = await fetch(next, { headers: { 'X-Flamethrower': '1' } })
+      .then((res) => this.responseToProgressStream(res))
+      .then((stream) => new Response(stream, { headers: { 'Content-Type': 'text/html' } }));
+
+    const html = await res.text();
+    const nextDoc = formatNextDocument(html);
+
+    // Merge HEAD
+    mergeHead(nextDoc);
+
+    // Merge BODY
+    // with optional native browser page transitions
+    const modernDoc = document as ModernDocument;
+    if (this.opts?.pageTransitions && modernDoc.createDocumentTransition) {
+      const transition = modernDoc.createDocumentTransition();
+      transition.start(() => {
+        replaceBody(nextDoc);
+        runScripts();
+        scrollTo(type, scrollId);
+      });
+    } else {
+      replaceBody(nextDoc);
+      runScripts();
+      scrollTo(type, scrollId);
+    }
+
+    window.dispatchEvent(new CustomEvent('flamethrower:router:end'));
+
+    // delay for any js rendered links
+    setTimeout(() => {
+      this.prefetch();
+    }, 200);
+
+    this.opts?.log && console.timeEnd('⏱️');
+
+    return false;
+  }
+
+  private responseToProgressStream(response: Response): ReadableStream {
+    if (!response.body) throw new Error('Response has no body');
+
+    const reader = response.body.getReader();
+    const lengthString = response.headers.get('Content-Length');
+    const length = lengthString !== null ? parseInt('-1') : Infinity;
+
+    let bytesReceived = 0;
+
+    // take each received chunk and emit an event, pass through to new stream which will be read as text
+    return new ReadableStream({
+      start(controller) {
+        // The following function handles each data chunk
+        function push(): void {
+          // "done" is a Boolean and value a "Uint8Array"
+          reader.read().then(({ done, value }) => {
+            // If there is no more data to read
+            if (done) {
+              controller.close();
+              return;
+            }
+
+            bytesReceived += value.length;
+            window.dispatchEvent(
+              new CustomEvent<FetchProgressEvent>('flamethrower:router:fetch-progress', {
+                detail: {
+                  // length may be NaN if no Content-Length header was found
+                  progress: (bytesReceived / length) * 100,
+                  received: bytesReceived,
+                  length: length || 0,
+                },
+              }),
+            );
+            // Get the data and send it to the browser via the controller
+            controller.enqueue(value);
+            // Check chunks by logging to the console
+            push();
+          });
+        }
+
+        push();
+      },
+    });
   }
 }

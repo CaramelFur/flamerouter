@@ -14,7 +14,7 @@ export function formatNextDocument(html: string): Document {
 export function replaceBody(nextDoc: Document): void {
   const nodesToPreserve = document.body.querySelectorAll('[flamethrower-preserve]');
   nodesToPreserve.forEach((oldDocElement) => {
-    let nextDocElement = nextDoc.body.querySelector('[flamethrower-preserve][id="' + oldDocElement.id + '"]');
+    const nextDocElement = nextDoc.body.querySelector('[flamethrower-preserve][id="' + oldDocElement.id + '"]');
     if (nextDocElement) {
       const clone = oldDocElement.cloneNode(true);
       nextDocElement.replaceWith(clone);
@@ -87,7 +87,7 @@ type PartitionedNodes = {
  */
 export function runScripts(): void {
   // Run scripts with data-reload attr
-  const headScripts = document.head.querySelectorAll('[data-reload]');
+  const headScripts = document.head.querySelectorAll('script[data-reload]') as NodeListOf<HTMLScriptElement>;
   headScripts.forEach(replaceAndRunScript);
 
   // Run scripts in body
@@ -102,6 +102,6 @@ function replaceAndRunScript(oldScript: HTMLScriptElement): void {
   for (const { name, value } of attrs) {
     newScript[name] = value;
   }
-  newScript.append(oldScript.textContent);
+  if (oldScript.textContent !== null) newScript.append(oldScript.textContent);
   oldScript.replaceWith(newScript);
 }

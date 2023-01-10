@@ -15,6 +15,7 @@ export function scrollTo(type: string, id?: string): void {
     }
   }
 }
+
 /**
  * @param  {string} url?
  * standard formatting for urls
@@ -36,10 +37,8 @@ export function addToPushState(url: string): void {
 }
 
 // Smooth scroll to anchor link
-export function scrollToAnchor(anchor) {
-  document
-    .querySelector(anchor)
-    .scrollIntoView({ behavior: 'smooth', block: 'start' });
+export function scrollToAnchor(anchor: string): void {
+  document.querySelector(anchor)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 /**
@@ -59,7 +58,7 @@ export function handlePopState(_: PopStateEvent): RouteChangeData {
  * Organizes link clicks into types
  */
 export function handleLinkClick(e: MouseEvent): RouteChangeData {
-  let anchor: HTMLAnchorElement;
+  let anchor: HTMLAnchorElement | undefined;
 
   if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) {
     return { type: 'disqualified' };
@@ -86,7 +85,9 @@ export function handleLinkClick(e: MouseEvent): RouteChangeData {
 
   // Link qualified
   if (anchor?.hasAttribute('href')) {
-    const ahref = anchor.getAttribute('href');
+    // We have just checked if it exists, so it must
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const ahref = anchor.getAttribute('href')!;
     const url = new URL(ahref, location.href);
 
     // Start router takeover
@@ -105,7 +106,7 @@ export function handleLinkClick(e: MouseEvent): RouteChangeData {
 
     // addToPushState(next);
     return { type: 'link', next, prev, scrollId };
-  } else {
-    return { type: 'noop' };
   }
+
+  return { type: 'noop' };
 }

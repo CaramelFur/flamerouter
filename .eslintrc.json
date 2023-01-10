@@ -59,17 +59,11 @@
             },
             "singleline": {
               "delimiter": "semi",
-              "requireLast": true
+              "requireLast": false
             }
           }
         ],
-        "@typescript-eslint/indent": [
-          "error",
-          2,
-          {
-            "SwitchCase": 1
-          }
-        ],
+        "@typescript-eslint/indent": "off",
 
         "no-trailing-spaces": [
           "warn",
@@ -84,7 +78,7 @@
         "no-useless-constructor": "error",
         "no-unreachable": "error",
         "no-warning-comments": "warn",
-        "no-console": "warn",
+        "no-console": "off",
         "no-return-await": "warn",
         "no-await-in-loop": "off",
         "eol-last": ["warn", "always"],

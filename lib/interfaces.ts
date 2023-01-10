@@ -13,12 +13,16 @@ export interface FlamethrowerOptions {
   pageTransitions?: boolean;
 }
 
-export interface RouteChangeData {
-  type: 'link' | 'popstate' | 'noop' | 'disqualified' | 'scroll' | 'go' | string;
-  next?: string;
-  prev?: string;
-  scrollId?: string;
-}
+export type RouteChangeData =
+  | {
+      type: 'noop' | 'external' | 'disqualified' | 'scrolled';
+    }
+  | {
+      type: 'link' | 'popstate' | 'go';
+      next: string;
+      prev?: string;
+      scrollId?: string;
+    };
 
 export type FlameWindow = Window & typeof globalThis & { flamethrower: Router };
 

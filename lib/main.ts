@@ -1,5 +1,5 @@
-import { Router } from './router';
 import { FlamethrowerOptions, FlameWindow } from './interfaces';
+import { Router } from './router';
 
 /**
  * @param  {FlamethrowerOptions} opts?
@@ -8,8 +8,7 @@ import { FlamethrowerOptions, FlameWindow } from './interfaces';
  */
 export default (opts?: FlamethrowerOptions): Router => {
   const router = new Router(opts);
-  // eslint-disable-next-line no-console
-  opts.log && console.log('🔥 flamethrower engaged');
+  opts?.log && console.log('🔥 flamethrower engaged');
   if (window) {
     const flame = window as FlameWindow;
     flame.flamethrower = router;
