@@ -7,11 +7,11 @@ import { Router } from './router';
  * can be accessed globally with window.flamethrower
  */
 export default (opts?: FlamethrowerOptions): Router => {
+  const flame = window as FlameWindow | undefined;
+  if (flame?.flamethrower) return flame.flamethrower;
+
   const router = new Router(opts);
   opts?.log && console.log('🔥 flamethrower engaged');
-  if (window) {
-    const flame = window as FlameWindow;
-    flame.flamethrower = router;
-  }
+  if (flame) flame.flamethrower = router;
   return router;
 };

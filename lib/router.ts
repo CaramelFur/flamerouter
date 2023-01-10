@@ -21,6 +21,8 @@ export class Router {
   constructor(public opts?: FlamethrowerOptions) {
     this.opts = { ...defaultOpts, ...(opts ?? {}) };
 
+    console.log('constructing');
+
     if (window?.history) {
       document.addEventListener('click', (e) => this.onClick(e));
       window.addEventListener('popstate', (e) => this.onPop(e));
@@ -134,6 +136,8 @@ export class Router {
    * Create a link to prefetch
    */
   private createLink(url: string): void {
+    if (this.linkExists(url)) return;
+
     const linkEl = document.createElement('link');
     linkEl.rel = 'prefetch';
     linkEl.href = url;
@@ -147,6 +151,16 @@ export class Router {
 
     // Keep track of prefetched links
     this.prefetched.add(url);
+  }
+
+  // a function to check if a prefetch link already exists
+  /**
+   * @param  {string} url
+   * Check if a prefetch link already exists
+   */
+  private linkExists(url: string): boolean {
+    const links = document.querySelectorAll('head>link[rel="prefetch"]');
+    return Array.from(links).some((link) => link.getAttribute('href') === url);
   }
 
   /**

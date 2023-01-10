@@ -1,6 +1,6 @@
 {
   "name": "flamethrower-router",
-  "version": "0.0.0-meme.12",
+  "version": "1.0.0",
   "description": "Blazingly fast SPA-like router for static sites",
   "main": "dist/main.js",
   "types": "dist/main.d.ts",
@@ -19,7 +19,10 @@
     "deploy": "node ./deploy-vercel.mjs && vercel deploy --prebuilt"
   },
   "keywords": [],
-  "author": "Jeff Delaney",
+  "authors": [
+    "Jeff Delaney",
+    "Rubikscraft <flamethrower@rubikscraft.nl>"
+  ],
   "license": "ISC",
   "devDependencies": {
     "@playwright/test": "^1.29.2",
