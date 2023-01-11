@@ -1,5 +1,5 @@
 {
-  "name": "flamethrower-router",
+  "name": "flamerouter",
   "version": "1.0.0",
   "description": "Blazingly fast SPA-like router for static sites",
   "main": "dist/main.js",
@@ -7,9 +7,9 @@
   "type": "module",
   "repository": {
     "type": "git",
-    "url": "https://github.com/fireship-io/flamethrower.git"
+    "url": "https://github.com/rubikscraft/flamerouter.git"
   },
-  "homepage": "https://github.com/fireship-io/flamethrower#readme",
+  "homepage": "https://github.com/rubikscraft/flamerouter#readme",
   "scripts": {
     "dev": "vite build --watch",
     "build": "vite build && npx tsc --emitDeclarationOnly",
@@ -21,7 +21,7 @@
   "keywords": [],
   "authors": [
     "Jeff Delaney",
-    "Rubikscraft <flamethrower@rubikscraft.nl>"
+    "Rubikscraft <flamerouter@rubikscraft.nl>"
   ],
   "license": "ISC",
   "devDependencies": {

@@ -1,6 +1,8 @@
-# Flamethrower 🔥
+# Flamerouter 🔥
 
-Status: Meme
+> I really liked the simplicity of the original [flamethrower](https://github.com/fireship-io/flamethrower), but things were missing and bugs were present. So here is my own improved version
+
+Status: Beta
 
 A 2kB zero-config router and prefetcher that makes a static site feel like a blazingly fast SPA.
 
@@ -20,13 +22,13 @@ This means you can have long-lived JavaScript behaviors between navigations. It 
 
 ## QuickStart
 
-```
-npm i flamethrower-router
+```sh
+npm i flamerouter
 ```
 
 ```js
-import flamethrower from 'flamethrower-router';
-const router = flamethrower();
+import flamerouter from 'flamerouter';
+const router = flamerouter();
 ```
 
 That's it. Your site now feels blazingly fast.
@@ -35,7 +37,7 @@ That's it. Your site now feels blazingly fast.
 
 ```js
 // with opts
-const router = flamethrower({ prefetch: 'visible', log: false, pageTransitions: false });
+const router = flamerouter({ prefetch: 'visible', log: false, pageTransitions: false });
 
 // Navigate manually
 router.go('/somewhere');
@@ -64,13 +66,14 @@ Scripts in `<body>` will run on every page change, but you can force scripts in 
 ```
 
 The fetch-progress event is a custom event, so usage will look something like this:
+
 ```js
 window.addEventListener('flamethrower:router:fetch-progress', ({ detail }) => {
-	const progressBar = document.getElementById('progress-bar');
-	// progress & length will be 0 if there is no Content-Length header
-	const bytesReceived = detail.received; // number
-	const length = detail.length; // number
-	progressBar.style.width = detail.progress + '%';
+ const progressBar = document.getElementById('progress-bar');
+ // progress & length will be 0 if there is no Content-Length header
+ const bytesReceived = detail.received; // number
+ const length = detail.length; // number
+ progressBar.style.width = detail.progress + '%';
 });
 ```
 
@@ -82,7 +85,7 @@ Prefecthing is disabled by default.
 - `hover`: prefetch links on hover
 
 ```js
-const router = flamethrower({ prefetch: 'visible' });
+const router = flamerouter({ prefetch: 'visible' });
 ```
 
 ### Misc
@@ -104,27 +107,27 @@ const router = flamethrower({ prefetch: 'visible' });
 
 Build it:
 
-```
+```sh
 npm run dev
 ```
 
 Serve the example:
 
-```
+```sh
 npm run serve
 ```
 
 Make sure all playwright tests pass before submitting new features.
 
-```
+```sh
 npm run test
 ```
 
 ### Deploying
 
-You can deploy Flamethrower to [Vercel](http://vercel.com/) as follows:
+You can deploy Flamerouter to [Vercel](http://vercel.com/) as follows:
 
-```
+```sh
 npm run deploy
 ```
 
