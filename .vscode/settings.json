@@ -1,7 +1,8 @@
 {
   "files.exclude": {
     "**/node_modules": true,
-    "package-lock.json": true
+    "package-lock.json": true,
+    "yarn.lock": true
   },
 
   "workbench.editor.enablePreview": false,
@@ -40,11 +41,5 @@
   "editor.codeActionsOnSave": {
     "source.fixAll.eslint": true
   },
-  "cSpell.words": [
-        "Fireship",
-        "msedge",
-        "popstate",
-        "prefetcher",
-        "viewports"
-   ]
+  "cSpell.words": ["Fireship", "msedge", "popstate", "prefetcher", "viewports"]
 }

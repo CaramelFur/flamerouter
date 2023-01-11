@@ -1,6 +1,6 @@
 {
   "name": "flamerouter",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "Blazingly fast SPA-like router for static sites",
   "main": "dist/main.js",
   "types": "dist/main.d.ts",
@@ -18,12 +18,18 @@
     "test": "playwright test",
     "deploy": "node ./deploy-vercel.mjs && vercel deploy --prebuilt"
   },
-  "keywords": [],
+  "keywords": [
+    "static-site",
+    "router",
+    "frontend",
+    "spa",
+    "prefetch"
+  ],
   "authors": [
     "Jeff Delaney",
     "Rubikscraft <flamerouter@rubikscraft.nl>"
   ],
-  "license": "ISC",
+  "license": "MIT",
   "devDependencies": {
     "@playwright/test": "^1.29.2",
     "@typescript-eslint/eslint-plugin": "^5.48.1",
@@ -31,7 +37,7 @@
     "eslint": "^8.31.0",
     "eslint-config-prettier": "^8.6.0",
     "eslint-plugin-prettier": "^4.2.1",
-    "eslint-plugin-sonarjs": "^0.17.0",
+    "eslint-plugin-sonarjs": "^0.18.0",
     "prettier": "^2.8.2",
     "serve": "^14.1.2",
     "typescript": "^4.9.4",
