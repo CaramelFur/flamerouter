@@ -7,7 +7,7 @@ test('basic navigation works', async ({ page }) => {
   const about = page.locator('#about');
 
   await about.click();
-  await expect(page).toHaveURL('/about/');
+  await expect(page).toHaveURL('/about');
   await expect(page).toHaveTitle(/About/);
 
   await page.goBack();

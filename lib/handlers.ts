@@ -1,112 +1,56 @@
-import { RouteChangeData } from './interfaces';
+import { RouteChangeData, TransitionType } from './interfaces';
+import { fullURL } from './urls';
 
-/**
- * @param  {string} type
- * @param  {string} id
- * scroll to position on next page
- */
-export function scrollTo(type: string, id?: string): void {
-  if (['link', 'go'].includes(type)) {
-    if (id) {
-      const el = document.querySelector(id);
-      el ? el.scrollIntoView({ behavior: 'smooth', block: 'start' }) : window.scrollTo({ top: 0 });
-    } else {
-      window.scrollTo({ top: 0 });
-    }
-  }
-}
-
-/**
- * @param  {string} url?
- * standard formatting for urls
- * url == https://example.com/foo/bar
- */
-export function fullURL(url?: string): string {
-  const href = new URL(url || window.location.href).href;
-  return href.endsWith('/') || href.includes('.') || href.includes('#') ? href : `${href}/`;
-}
-
-/**
- * @param  {string} url
- * Writes URL to browser history
- */
-export function addToPushState(url: string): void {
-  if (!window.history.state || window.history.state.url !== url) {
-    window.history.pushState({ url }, 'internalLink', url);
-  }
-}
-
-// Smooth scroll to anchor link
-export function scrollToAnchor(anchor: string): void {
-  document.querySelector(anchor)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
-
-/**
- * @param  {PopStateEvent} e
- * @returns RouteChangeData
- * Handles back button/forward
- */
+// Handles page back and page forward
 export function handlePopState(_: PopStateEvent): RouteChangeData {
-  const next = fullURL();
-  // addToPushState(next);
-  return { type: 'popstate', next };
+  const { target: next, id: scrollId } = fullURL();
+  return { type: TransitionType.Popstate, next, scrollId };
 }
 
-/**
- * @param  {MouseEvent} e
- * @returns RouteChangeData
- * Organizes link clicks into types
- */
-export function handleLinkClick(e: MouseEvent): RouteChangeData {
-  let anchor: HTMLAnchorElement | undefined;
+export function handleMouseClick(e: MouseEvent): RouteChangeData {
+  if (isHoldingSpecialKey(e)) return { type: TransitionType.Noop };
 
-  if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) {
-    return { type: 'disqualified' };
-  }
+  const anchor = getParentAnchor(e.target as HTMLElement);
+  if (!anchor) return { type: TransitionType.Noop };
 
-  // Find element containing href
-  for (let n = e.target as HTMLElement; n.parentNode; n = n.parentNode as HTMLElement) {
-    if (n.nodeName === 'A') {
-      anchor = n as HTMLAnchorElement;
-      break;
-    }
-  }
-
-  // External links
-  if (anchor && anchor.host !== location.host) {
+  if (isExternalLink(anchor)) {
     anchor.target = '_blank';
-    return { type: 'external' };
+    return { type: TransitionType.Noop };
   }
 
-  // User opt-out
-  if (anchor && 'cold' in anchor?.dataset) {
-    return { type: 'disqualified' };
+  if (isLinkOptOut(anchor)) return { type: TransitionType.Noop };
+
+  const ahref = anchor.getAttribute('href');
+  if (!ahref) return { type: TransitionType.Noop };
+
+  const url = new URL(ahref, location.href);
+  e.preventDefault();
+
+  // TODO: improve
+  if (ahref.startsWith('#')) {
+    return { type: TransitionType.Scroll, scrollId: ahref };
   }
 
-  // Link qualified
-  if (anchor?.hasAttribute('href')) {
-    // We have just checked if it exists, so it must
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const ahref = anchor.getAttribute('href')!;
-    const url = new URL(ahref, location.href);
+  const { target: next, id: scrollId } = fullURL(url.href);
+  const { target: prev } = fullURL();
 
-    // Start router takeover
-    e.preventDefault();
+  return { type: TransitionType.Link, next, prev, scrollId };
+}
 
-    // If anchor, scroll,
-    if (ahref?.startsWith('#')) {
-      scrollToAnchor(ahref);
-      return { type: 'scrolled' };
-    }
+function isHoldingSpecialKey(e: MouseEvent): boolean {
+  return e.altKey || e.ctrlKey || e.metaKey || e.shiftKey;
+}
 
-    // ID to scroll to after navigation, like /route/#some-id
-    const scrollId = ahref.match(/#([\w'-]+)\b/g)?.[0];
-    const next = fullURL(url.href);
-    const prev = fullURL();
+function isExternalLink(node: HTMLAnchorElement): boolean {
+  return node.host !== location.host;
+}
 
-    // addToPushState(next);
-    return { type: 'link', next, prev, scrollId };
-  }
+function isLinkOptOut(node: HTMLElement): boolean {
+  return 'cold' in node.dataset;
+}
 
-  return { type: 'noop' };
+function getParentAnchor(node: HTMLElement): HTMLAnchorElement | null {
+  if (node.nodeName === 'A') return node as HTMLAnchorElement;
+  if (node.parentNode) return getParentAnchor(node.parentNode as HTMLElement);
+  return null;
 }
