@@ -1,112 +1,56 @@
-import { RouteChangeData } from './interfaces';
+import { RouteChangeData, TransitionType } from './interfaces';
+import { fullURL } from './urls';
 
-/**
- * @param  {string} type
- * @param  {string} id
- * scroll to position on next page
- */
-export function scrollTo(type: string, id?: string): void {
-  if (['link', 'go'].includes(type)) {
-    if (id) {
-      const el = document.querySelector(id);
-      el ? el.scrollIntoView({ behavior: 'smooth', block: 'start' }) : window.scrollTo({ top: 0 });
-    } else {
-      window.scrollTo({ top: 0 });
-    }
-  }
+// Handles page back and page forward
+export function handlePopState(e: PopStateEvent): RouteChangeData {
+  console.log('handlePopState', e);
+  return { type: TransitionType.Popstate, next: window.location.href, scroll: e.state?.__flame?.scroll ?? null };
 }
 
-/**
- * @param  {string} url?
- * standard formatting for urls
- * url == https://example.com/foo/bar
- */
-export function fullURL(url?: string): string {
-  const href = new URL(url || window.location.href).href;
-  return href.endsWith('/') || href.includes('.') || href.includes('#') ? href : `${href}/`;
-}
+export function handleMouseClick(e: MouseEvent): RouteChangeData {
+  if (isHoldingSpecialKey(e)) return { type: TransitionType.Noop };
 
-/**
- * @param  {string} url
- * Writes URL to browser history
- */
-export function addToPushState(url: string): void {
-  if (!window.history.state || window.history.state.url !== url) {
-    window.history.pushState({ url }, 'internalLink', url);
-  }
-}
+  const anchor = getParentAnchor(e.target as HTMLElement);
+  if (!anchor) return { type: TransitionType.Noop };
 
-// Smooth scroll to anchor link
-export function scrollToAnchor(anchor: string): void {
-  document.querySelector(anchor)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
-
-/**
- * @param  {PopStateEvent} e
- * @returns RouteChangeData
- * Handles back button/forward
- */
-export function handlePopState(_: PopStateEvent): RouteChangeData {
-  const next = fullURL();
-  // addToPushState(next);
-  return { type: 'popstate', next };
-}
-
-/**
- * @param  {MouseEvent} e
- * @returns RouteChangeData
- * Organizes link clicks into types
- */
-export function handleLinkClick(e: MouseEvent): RouteChangeData {
-  let anchor: HTMLAnchorElement | undefined;
-
-  if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) {
-    return { type: 'disqualified' };
-  }
-
-  // Find element containing href
-  for (let n = e.target as HTMLElement; n.parentNode; n = n.parentNode as HTMLElement) {
-    if (n.nodeName === 'A') {
-      anchor = n as HTMLAnchorElement;
-      break;
-    }
-  }
-
-  // External links
-  if (anchor && anchor.host !== location.host) {
+  if (isExternalLink(anchor)) {
     anchor.target = '_blank';
-    return { type: 'external' };
+    return { type: TransitionType.Noop };
   }
 
-  // User opt-out
-  if (anchor && 'cold' in anchor?.dataset) {
-    return { type: 'disqualified' };
+  if (isLinkOptOut(anchor)) return { type: TransitionType.Noop };
+
+  const ahref = anchor.getAttribute('href');
+  if (!ahref) return { type: TransitionType.Noop };
+
+  e.preventDefault();
+
+  if (ahref.startsWith('#')) {
+    return { type: TransitionType.Scroll, scroll: ahref };
   }
 
-  // Link qualified
-  if (anchor?.hasAttribute('href')) {
-    // We have just checked if it exists, so it must
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const ahref = anchor.getAttribute('href')!;
-    const url = new URL(ahref, location.href);
+  const url = new URL(ahref, location.href);
 
-    // Start router takeover
-    e.preventDefault();
+  const { target: next, id: scrollId } = fullURL(url.href);
+  const { target: prev } = fullURL();
 
-    // If anchor, scroll,
-    if (ahref?.startsWith('#')) {
-      scrollToAnchor(ahref);
-      return { type: 'scrolled' };
-    }
+  return { type: TransitionType.Link, next, prev, scroll: scrollId };
+}
 
-    // ID to scroll to after navigation, like /route/#some-id
-    const scrollId = ahref.match(/#([\w'-]+)\b/g)?.[0];
-    const next = fullURL(url.href);
-    const prev = fullURL();
+function isHoldingSpecialKey(e: MouseEvent): boolean {
+  return e.altKey || e.ctrlKey || e.metaKey || e.shiftKey;
+}
 
-    // addToPushState(next);
-    return { type: 'link', next, prev, scrollId };
-  }
+function isExternalLink(node: HTMLAnchorElement): boolean {
+  return node.host !== location.host;
+}
 
-  return { type: 'noop' };
+function isLinkOptOut(node: HTMLElement): boolean {
+  return 'cold' in node.dataset;
+}
+
+function getParentAnchor(node: HTMLElement): HTMLAnchorElement | null {
+  if (node.nodeName === 'A') return node as HTMLAnchorElement;
+  if (node.parentNode) return getParentAnchor(node.parentNode as HTMLElement);
+  return null;
 }

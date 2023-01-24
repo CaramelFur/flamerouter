@@ -1,0 +1,12 @@
+#heading {
+  color: blue;
+}
+
+#load-bar {
+  background-color: blue;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 5px;
+}

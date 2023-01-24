@@ -2,12 +2,12 @@ import { expect, test } from '@playwright/test';
 
 test('basic navigation works', async ({ page }) => {
   await page.goto('/');
-  await expect(page).toHaveTitle(/Flamethrower/);
+  await expect(page).toHaveTitle(/Flamerouter/);
 
   const about = page.locator('#about');
 
   await about.click();
-  await expect(page).toHaveURL('/about/');
+  await expect(page).toHaveURL('/about');
   await expect(page).toHaveTitle(/About/);
 
   await page.goBack();
@@ -16,16 +16,18 @@ test('basic navigation works', async ({ page }) => {
 
 test('only valid scripts should run', async ({ page }) => {
   await page.goto('/');
+
   const about = page.locator('#about');
   await about.click();
+
   const bodyCheck = page.locator('#bodyCheck');
-  await expect(bodyCheck).toContainText('body script works');
+  await expect(bodyCheck).toContainText('GOOD');
 
   const headCheck = page.locator('#headCheck');
-  await expect(headCheck).toContainText('head script works');
+  await expect(headCheck).toContainText('GOOD');
 
   const headCheck2 = page.locator('#headCheck2');
-  await expect(headCheck2).toContainText('default text');
+  await expect(headCheck2).toContainText('FLAME');
 });
 
 test('navigate programmatically', async ({ page }) => {
@@ -40,11 +42,12 @@ test('navigate programmatically', async ({ page }) => {
 
 test('meta tags are added and removed', async ({ page }) => {
   await page.goto('/');
+
   const about = page.locator('#about');
   await about.click();
 
   const desc = page.locator('[name="description"]');
-  await expect(desc).toHaveAttribute('content', 'The About Page');
+  await expect(desc).toHaveAttribute('content', 'about');
 
   const extra = page.locator('[name="extra"]');
   await expect(extra).toHaveAttribute('content', 'test');
@@ -53,7 +56,7 @@ test('meta tags are added and removed', async ({ page }) => {
   await back.click();
 
   const descHome = page.locator('[name="description"]');
-  await expect(descHome).toHaveAttribute('content', 'The Home Page');
+  await expect(descHome).toHaveAttribute('content', 'home');
 
   const extraHome = page.locator('[name="extra"]');
   await expect(extraHome).toHaveCount(0);
@@ -61,26 +64,55 @@ test('meta tags are added and removed', async ({ page }) => {
 
 test('prefetching works', async ({ page }) => {
   await page.goto('/');
-  let preAbout = page.locator('link[href="/about"]');
+
+  let preAbout = page.locator('link[href="http://localhost:3000/about"]');
   await expect(preAbout).toHaveCount(1);
 
   const about = page.locator('#about');
   await about.click();
 
-  const homePre = page.locator('link[href="/"]');
+  const homePre = page.locator('link[href="http://localhost:3000/"]');
   await expect(homePre).toHaveCount(1);
 
-  let testPre = page.locator('link[href="/test"]');
+  let testPre = page.locator('link[href="http://localhost:3000/test"]');
   await expect(testPre).toHaveCount(0);
 
   // Validate intersection observer works
-  const heading = page.locator('#chapter');
+  const heading = page.locator('#aheading');
   await heading.click();
 
-  testPre = page.locator('link[href="/test"]');
+  testPre = page.locator('link[href="http://localhost:3000/test"]');
   await expect(testPre).toHaveCount(1);
 
   // ensure no duplicates
-  preAbout = page.locator('link[href="/about"]');
+  preAbout = page.locator('link[href="http://localhost:3000/about"]');
   await expect(preAbout).toHaveCount(1);
+});
+
+test('scroll position is kept', async ({ page }) => {
+  await page.goto('/about', { waitUntil: 'networkidle' });
+
+  // scroll to 600px
+  await page.evaluate(() => {
+    window.scrollTo({ top: 600 });
+  });
+
+  await page.waitForTimeout(100);
+
+  await page.evaluate(() => {
+    (window as any).flame.go('/test');
+  });
+  await page.waitForLoadState('networkidle');
+
+  // Go back to about using history
+  await page.goBack();
+
+  await page.waitForTimeout(100);
+
+  // Check if we are at 600px
+  const scroll2 = await page.evaluate(() => {
+    return window.scrollY;
+  });
+
+  expect(scroll2).toBe(600);
 });

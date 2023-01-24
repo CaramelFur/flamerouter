@@ -1,49 +1,24 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
   <head>
-    <meta charset="UTF-8" />
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="icon" href="favicon.ico" type="image/png" />
-    <meta name="description" content="The Home Page" />
-    <title>Flamethrower</title>
-    <script defer type="module">
-      import flamethrower from '/flamethrower.js';
-      flamethrower({ prefetch: 'visible', log: true, pageTransitions: true });
-    </script>
+    <meta name="description" content="home" />
 
-    <style>
-      #heading {
-        color: red;
-      }
-      #load-bar {
-        background-color: blue;
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 0;
-        height: 5px;
-      }
-    </style>
+    <title>Flamerouter</title>
+
+    <script defer type="module" src="/loader.js"></script>
+
+    <link rel="stylesheet" href="/main.css" />
   </head>
   <body>
     <div id="load-bar"></div>
+
     <h1 id="heading">Home</h1>
-    <a href="/">Home</a> | <a id="about" href="/about">About</a>
+
+    <a href="/">Home</a>
+    <a id="about" href="/about">About</a>
 
     <div id="keep" flamethrower-preserve>
-      <article>
-        <p>This text should be preserved when starting from home</p>
-      </article> 
+      <p>This text should be preserved when starting from home</p>
     </div>
-
-    <script>
-      // test
-      window.addEventListener('flamethrower:router:fetch-progress', ({ detail }) => {
-        const loadBar = document.getElementById('load-bar');
-        console.log('Fetch Progress:', detail);
-        loadBar.style.width = detail.progress + '%';
-      });
-    </script>
   </body>
 </html>
